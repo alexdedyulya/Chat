@@ -13,37 +13,8 @@ import java.util.Iterator;
  * Created by Alex on 02.11.2017.
  */
 public class Server {
-    ArrayList ClientOutputStream;
-    public class ClientHandler implements Runnable{
-        BufferedReader reader;
-        Socket socket;
-        public ClientHandler(Socket clientSocket)
-        {
-            try {
-                socket = clientSocket;
-                InputStreamReader isReader = new InputStreamReader(socket.getInputStream());
-                reader = new BufferedReader(isReader);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    ArrayList ClientConnection;
 
-        @Override
-        public void run() {
-            String message;
-
-            try {
-                while ((message = reader.readLine()) != null)
-                {
-                    System.out.println("read "+message);
-                    tellEveryone(message);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();;
-            }
-
-        }
-    }
 
     public static void main(String[] args) {
         new Server().go();
@@ -51,19 +22,18 @@ public class Server {
     }
 
     public void go(){
-        ClientOutputStream = new ArrayList();
+        ClientConnection = new ArrayList();
         try {
-            ServerSocket serverSocket = new ServerSocket(5001);
+            ServerSocket serverSocket = new ServerSocket(5000);
 
             while(true)
             {
-                Socket clientSocket = serverSocket.accept();
-                PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-                ClientOutputStream.add(writer);
+                Client client = new Client();
+                client.setNetwork(serverSocket.accept());
+                //PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
+                ClientConnection.add(client);
 
-                Thread t = new Thread(new ClientHandler(clientSocket));
-                t.start();
-                System.out.println("got a connection");
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -71,7 +41,7 @@ public class Server {
     }
 
     public void tellEveryone(String message){
-        Iterator it = ClientOutputStream.iterator();
+        Iterator it = ClientConnection.iterator();
         while (it.hasNext()) {
             try {
                 PrintWriter writer = (PrintWriter) it.next();
