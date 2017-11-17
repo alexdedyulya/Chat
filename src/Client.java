@@ -11,10 +11,12 @@ public class Client {
     BufferedReader reader;
     BufferedWriter writer;
     Thread thread;
+    ConnectionClient connectionClient;
 
 
-    public void setNetwork(Socket socket1) {
+    public void setNetwork(Socket socket1, ConnectionClient connectionClient) {
         try {
+            this.connectionClient = connectionClient;
             //socket = new Socket("192.168.1.104", 5001);
             this.socket = socket1;
             InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
@@ -29,21 +31,24 @@ public class Client {
         }
     }
 
-    public class IncomingReader extends Server implements Runnable{
+    public class IncomingReader implements Runnable{
         @Override
         public void run() {
             String message;
             try {
-                while ((message=reader.readLine()) != null)
+                connectionClient.connection(Client.this);
+                while (!thread.isInterrupted())
                 {
-                    System.out.println("read " + message);
-                    tellEveryone(message);
-      //              fieldInput.setText(message + "fggf\n");
+                    message=reader.readLine();
+                    connectionClient.receiveString(message);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                disconnect();
             }
+            finally {
+                connectionClient.disconnection(Client.this);
+            }
+
         }
     }
 
@@ -51,12 +56,18 @@ public class Client {
     public synchronized void SendString(String msg)
     {
         try {
-            writer.write(msg);
+            writer.write(msg+"\n\r");
             writer.flush(); //сбрасывает буферы
         } catch (IOException e) {
             e.printStackTrace();
             disconnect();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Клиент:" + socket.getInetAddress() + ":" + socket
+                .getPort();
     }
 
     public synchronized void disconnect ()
@@ -68,6 +79,8 @@ public class Client {
             e.printStackTrace();
         }
     }
+
+
 
 
 }
