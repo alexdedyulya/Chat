@@ -23,6 +23,7 @@ public class Server implements ConnectionClient {
             {
                 Client client = new Client();
                 client.setNetwork(serverSocket.accept(), this);
+
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -34,6 +35,12 @@ public class Server implements ConnectionClient {
     public synchronized void connection(Client client)
     {
         clientConnection.add(client);
+        System.out.println("проверка " + client);
+        clientName.add(client.getName());
+        for (int i = 0; i < clientName.size(); i++) {
+            System.out.println("krflf  " + clientName.get(i));
+        }
+
         tellEveryone("Соединение установлено с " + client);
        // tellList();
     }

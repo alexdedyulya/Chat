@@ -4,13 +4,36 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.*;
 import java.util.ArrayList;
 
 /**
  * Created by Alex on 16.11.2017.
  */
 public class ClientGUI implements ConnectionClient {
-    JTextField fieldLogin = new JTextField(15);
+    private String connectionUrl = "jdbc:mysql://localhost:3306/chat";
+    private String name = "root";
+    private String password = "root";
+    Connection connection;
+    PreparedStatement prStatement;
+
+    public void connect(){
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            connection = DriverManager.getConnection(connectionUrl, name,password);
+            System.out.println("db connect");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    static JTextField fieldLogin = new JTextField(15);
     JButton enterButton = new JButton("Enter");
     JTextArea incoming = new JTextArea(27,30);
     JTextField fieldInput = new JTextField(30);
@@ -21,12 +44,15 @@ public class ClientGUI implements ConnectionClient {
     //static DefaultListModel listModel = new DefaultListModel();
     ArrayList<String> arrayOfClient = new ArrayList<>();
 
+
+
     Socket socket;
     Client client;
 
     public static void main(String[] args) {
-                ClientGUI clientGui = new ClientGUI();
-                clientGui.go();
+        ClientGUI clientGui = new ClientGUI();
+        clientGui.connect();
+        clientGui.go();
     }
 
     public void go(){
@@ -140,6 +166,7 @@ public class ClientGUI implements ConnectionClient {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+
             client.setNetwork(socket, ClientGUI.this);
 
         }
@@ -148,18 +175,57 @@ public class ClientGUI implements ConnectionClient {
     @Override
     public void connection(Client client) {
         System.out.println("Подкл");
+        client.setName(fieldLogin.getText());
         tellMessage("Подключился");
-        arrayOfClient.add(fieldLogin.getText());
-        for (int i = 0; i < arrayOfClient.size(); i++) {
-            System.out.println(arrayOfClient.get(i));
+        System.out.println(client.getName() + client);
+        String clients = "";
+        try {
+            prStatement = connection.prepareStatement("INSERT INTO clients (login, status) VALUE (?, ?)");
+            prStatement.setString(1 ,fieldLogin.getText());
+            prStatement.setBoolean(2, true);
+            prStatement.execute();
+            ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
+            while (resultSet.next())
+            {
+                clients += resultSet.getString("login") + "("
+                        + (resultSet.getBoolean("status")
+                        == true ? "онлайн" : "офлайн")
+                        +")" + "\n";
+            }
+            System.out.println("БД " + clients);
+            listOfClient.setText(clients);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+
+        disconnection(client);
+
     }
 
     @Override
     public void disconnection(Client client) {
+        String clients = "";
         System.out.println("Откл");
         tellMessage("Отключился");
-        arrayOfClient.remove(fieldLogin.getText());
+        try {
+            prStatement = connection.prepareStatement("UPDATE clients SET status = ? where login = ?");
+            prStatement.setBoolean(1, false);
+            prStatement.setString(2, fieldLogin.getText());
+            prStatement.executeUpdate();
+            ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
+            while (resultSet.next())
+            {
+                clients += resultSet.getString("login") + "("
+                        + (resultSet.getBoolean("status")
+                        == true ? "онлайн" : "офлайн")
+                        +")" + "\n";
+            }
+            System.out.println("БД " + clients);
+            listOfClient.setText(clients);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

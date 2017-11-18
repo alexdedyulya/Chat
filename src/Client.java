@@ -12,13 +12,19 @@ public class Client {
     BufferedWriter writer;
     Thread thread;
     ConnectionClient connectionClient;
+    private String name;
 
+    public void setName(String name) {
+        this.name = name;
+    }
 
+    public String getName() {
+        return name;
+    }
 
     public void setNetwork(Socket socket1, ConnectionClient connectionClient) {
         try {
             this.connectionClient = connectionClient;
-            //socket = new Socket("192.168.1.104", 5001);
             this.socket = socket1;
             InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
             reader = new BufferedReader(streamReader);
@@ -67,18 +73,6 @@ public class Client {
         }
     }
 
-  /*  public synchronized void SendList(String msg)
-    {
-        try {
-            writer.write(msg+"\n");
-            writer.flush(); //сбрасывает буферы
-        } catch (IOException e) {
-            e.printStackTrace();
-            disconnect();
-        }
-    }*/
-
-
     @Override
     public String toString() {
         return "Клиент:" + socket.getInetAddress() + ":" + socket
@@ -94,8 +88,5 @@ public class Client {
             e.printStackTrace();
         }
     }
-
-
-
 
 }
