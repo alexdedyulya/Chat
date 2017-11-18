@@ -14,6 +14,7 @@ public class Client {
     ConnectionClient connectionClient;
 
 
+
     public void setNetwork(Socket socket1, ConnectionClient connectionClient) {
         try {
             this.connectionClient = connectionClient;
@@ -34,9 +35,10 @@ public class Client {
     public class IncomingReader implements Runnable{
         @Override
         public void run() {
-            String message;
+            String message="";
             try {
-                connectionClient.connection(Client.this);
+                connectionClient.connection(Client.this, message);
+
                 while (!thread.isInterrupted())
                 {
                     message=reader.readLine();
@@ -56,13 +58,25 @@ public class Client {
     public synchronized void SendString(String msg)
     {
         try {
-            writer.write(msg+"\n\r");
+            writer.write(msg+"\n");
             writer.flush(); //сбрасывает буферы
         } catch (IOException e) {
             e.printStackTrace();
             disconnect();
         }
     }
+
+  /*  public synchronized void SendList(String msg)
+    {
+        try {
+            writer.write(msg+"\n");
+            writer.flush(); //сбрасывает буферы
+        } catch (IOException e) {
+            e.printStackTrace();
+            disconnect();
+        }
+    }*/
+
 
     @Override
     public String toString() {

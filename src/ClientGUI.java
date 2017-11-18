@@ -2,30 +2,33 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * Created by Alex on 16.11.2017.
  */
-public class ClientGUI {
+public class ClientGUI implements ConnectionClient {
     JTextField fieldLogin = new JTextField(15);
     JButton enterButton = new JButton("Enter");
     JTextArea incoming = new JTextArea(27,30);
     JTextField fieldInput = new JTextField(30);
-    JList list;
+    JTextArea listOfClient = new JTextArea(27,10);
     JButton sendButton = new JButton("Send");
     JFrame loginFrame = new JFrame("Chat client Login");
     JFrame frame = new JFrame("Chat client");
-    String[] clientList = {"alex", "gena"};
-    DefaultListModel listModel = new DefaultListModel();
+    //static DefaultListModel listModel = new DefaultListModel();
+    static String name;
 
+    Socket socket;
+    Client client;
 
     public static void main(String[] args) {
-        ClientGUI clientGui = new ClientGUI();
-        clientGui.go();
+                ClientGUI clientGui = new ClientGUI();
+                clientGui.go();
     }
+
     public void go(){
-        listModel.addElement("alex");
-        listModel.addElement("gena");
 
         loginFrame.setBounds(200,100,300, 300);
         loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -54,7 +57,7 @@ public class ClientGUI {
 
 
 
-        frame.setBounds(200,100,500, 600);
+        frame.setBounds(200,100,550, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         GridBagLayout gridBag = new GridBagLayout();
         frame.setLayout(gridBag);
@@ -74,8 +77,9 @@ public class ClientGUI {
 
         incoming.setEditable(false);
         incoming.setLineWrap(true);
-        gridBag.setConstraints(incoming, c);
-        frame.add(incoming);
+        JScrollPane incomingScroll = new JScrollPane(incoming);
+        gridBag.setConstraints(incomingScroll, c);
+        frame.add(incomingScroll);
 
 
         c.gridy = GridBagConstraints.RELATIVE;
@@ -93,14 +97,12 @@ public class ClientGUI {
         c.ipadx = 30;
         c.insets = new Insets(5, 0, 5, 5);
         //c.ipady = 20;
-        list = new JList(listModel);
-        list.setLayoutOrientation(JList.VERTICAL);
-        list.setVisibleRowCount(0);
-        JScrollPane northScroll = new JScrollPane(list);
-        northScroll.setPreferredSize(new Dimension(100, 450));
 
-        gridBag.setConstraints(northScroll, c);
-        frame.add(northScroll);
+        JScrollPane listScroll = new JScrollPane(listOfClient);
+        listOfClient.setEditable(false);
+        listOfClient.setLineWrap(true);
+        gridBag.setConstraints(listScroll, c);
+        frame.add(listScroll);
 
         loginFrame.setVisible(true);
 
@@ -109,15 +111,11 @@ public class ClientGUI {
     public class SendButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            try {
-             //   writer.write(fieldInput.getText());
-             //   writer.flush();
+
+            if (fieldInput.getText().equals("")) {
+                return;
             }
-            catch (Exception e1)
-            {
-                e1.printStackTrace();
-            }
-            incoming.append(fieldInput.getText()+"\n");
+            client.SendString(fieldLogin.getText() + ": " + fieldInput.getText());
             fieldInput.setText("");
             fieldInput.requestFocus();
         }
@@ -128,10 +126,56 @@ public class ClientGUI {
         @Override
         public void actionPerformed(ActionEvent e) {
             //list.(fieldLogin.getText()+"\n");
-            listModel.addElement(fieldLogin.getText());
-            loginFrame.setVisible(false);
+            if (fieldLogin.getText().equals("")) {
+                return;
+            }
 
+
+            loginFrame.setVisible(false);
             frame.setVisible(true);
+
+            client = new Client();
+            try {
+                socket = new Socket("192.168.1.102", 5000);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            client.setNetwork(socket, ClientGUI.this);
+            //client.SendString(fieldLogin.getText());
         }
     }
+
+    @Override
+    public void connection(Client client, String message) {
+        System.out.println("Подкл");
+        tellMessage("Подключился");
+        tellList(message);
+    }
+
+    @Override
+    public void disconnection(Client client) {
+        System.out.println("Откл");
+        tellMessage("Отключился");
+    }
+
+    @Override
+    public void receiveString(String message) {
+        System.out.println(message);
+        tellMessage(message);
+    }
+
+
+
+    private synchronized void tellMessage(String message)
+    {
+        incoming.append(message+"\n");
+        incoming.setCaretPosition(incoming.getDocument().getLength());
+    }
+
+    private synchronized void tellList(String message)
+    {
+        listOfClient.append(message+"\n");
+        listOfClient.setCaretPosition(listOfClient.getDocument().getLength());
+    }
 }
+

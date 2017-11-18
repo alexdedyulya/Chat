@@ -7,6 +7,7 @@ import java.util.ArrayList;
  */
 public class Server implements ConnectionClient {
     static ArrayList<Client> clientConnection;
+    static ArrayList<String> clientName = new ArrayList<>();
 
 
     public static void main(String[] args) {
@@ -30,10 +31,11 @@ public class Server implements ConnectionClient {
     }
 
     @Override
-    public synchronized void connection(Client client)
+    public synchronized void connection(Client client, String message)
     {
         clientConnection.add(client);
         tellEveryone("Соединение установлено с " + client);
+        tellList(message);
     }
 
     @Override
@@ -46,13 +48,28 @@ public class Server implements ConnectionClient {
 
     @Override
     public synchronized void receiveString(String message) {
+        System.out.println(message);
         tellEveryone(message);
     }
 
+
+
     public void tellEveryone(String message){
-        System.out.println(message);
+
         for (int i = 0; i < clientConnection.size(); i++) {
+            System.out.println(message);
             clientConnection.get(i).SendString(message);
         }
+    }
+
+    public void tellList(String message) {
+        message = "";
+        System.out.println("size" + clientConnection.size());
+        for (int i = 0; i < clientConnection.size(); i++) {
+            message += clientConnection.get(i) + "\n";
+        }
+        System.out.println(message);
+
+        tellEveryone(message);
     }
 }
