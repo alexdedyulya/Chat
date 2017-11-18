@@ -31,11 +31,11 @@ public class Server implements ConnectionClient {
     }
 
     @Override
-    public synchronized void connection(Client client, String message)
+    public synchronized void connection(Client client)
     {
         clientConnection.add(client);
         tellEveryone("Соединение установлено с " + client);
-        tellList(message);
+       // tellList();
     }
 
     @Override
@@ -62,8 +62,8 @@ public class Server implements ConnectionClient {
         }
     }
 
-    public void tellList(String message) {
-        message = "";
+    public void tellList() {
+        String message = "";
         System.out.println("size" + clientConnection.size());
         for (int i = 0; i < clientConnection.size(); i++) {
             message += clientConnection.get(i) + "\n";

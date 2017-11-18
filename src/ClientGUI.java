@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * Created by Alex on 16.11.2017.
@@ -18,7 +19,7 @@ public class ClientGUI implements ConnectionClient {
     JFrame loginFrame = new JFrame("Chat client Login");
     JFrame frame = new JFrame("Chat client");
     //static DefaultListModel listModel = new DefaultListModel();
-    static String name;
+    ArrayList<String> arrayOfClient = new ArrayList<>();
 
     Socket socket;
     Client client;
@@ -125,11 +126,10 @@ public class ClientGUI implements ConnectionClient {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            //list.(fieldLogin.getText()+"\n");
+
             if (fieldLogin.getText().equals("")) {
                 return;
             }
-
 
             loginFrame.setVisible(false);
             frame.setVisible(true);
@@ -141,21 +141,25 @@ public class ClientGUI implements ConnectionClient {
                 e1.printStackTrace();
             }
             client.setNetwork(socket, ClientGUI.this);
-            //client.SendString(fieldLogin.getText());
+
         }
     }
 
     @Override
-    public void connection(Client client, String message) {
+    public void connection(Client client) {
         System.out.println("Подкл");
         tellMessage("Подключился");
-        tellList(message);
+        arrayOfClient.add(fieldLogin.getText());
+        for (int i = 0; i < arrayOfClient.size(); i++) {
+            System.out.println(arrayOfClient.get(i));
+        }
     }
 
     @Override
     public void disconnection(Client client) {
         System.out.println("Откл");
         tellMessage("Отключился");
+        arrayOfClient.remove(fieldLogin.getText());
     }
 
     @Override
@@ -168,14 +172,15 @@ public class ClientGUI implements ConnectionClient {
 
     private synchronized void tellMessage(String message)
     {
-        incoming.append(message+"\n");
-        incoming.setCaretPosition(incoming.getDocument().getLength());
-    }
+    /*    if (message.contains(socket.getInetAddress().toString()) && !message.contains("Соединение")) {
 
-    private synchronized void tellList(String message)
-    {
-        listOfClient.append(message+"\n");
-        listOfClient.setCaretPosition(listOfClient.getDocument().getLength());
+            listOfClient.append(message+ "\n");
+            listOfClient.setCaretPosition(listOfClient.getDocument().getLength());
+        }
+        else {*/
+            incoming.append(message + "\n");
+            incoming.setCaretPosition(incoming.getDocument().getLength());
+       // }
     }
 }
 

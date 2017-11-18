@@ -35,9 +35,10 @@ public class Client {
     public class IncomingReader implements Runnable{
         @Override
         public void run() {
-            String message="";
+            String message;
+
             try {
-                connectionClient.connection(Client.this, message);
+                connectionClient.connection(Client.this);
 
                 while (!thread.isInterrupted())
                 {
