@@ -1,9 +1,10 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -14,8 +15,10 @@ public class ClientGUI implements ConnectionClient {
     private String connectionUrl = "jdbc:mysql://localhost:3306/chat";
     private String name = "root";
     private String password = "root";
-    Connection connection;
-    PreparedStatement prStatement;
+    private Connection connection;
+    private PreparedStatement prStatement;
+    private InetAddress inetAddress;
+    String clients;
 
     public void connect(){
 
@@ -43,6 +46,7 @@ public class ClientGUI implements ConnectionClient {
     JFrame frame = new JFrame("Chat client");
     //static DefaultListModel listModel = new DefaultListModel();
     ArrayList<String> arrayOfClient = new ArrayList<>();
+
 
 
 
@@ -85,7 +89,7 @@ public class ClientGUI implements ConnectionClient {
 
 
         frame.setBounds(200,100,550, 600);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         GridBagLayout gridBag = new GridBagLayout();
         frame.setLayout(gridBag);
 
@@ -133,6 +137,94 @@ public class ClientGUI implements ConnectionClient {
 
         loginFrame.setVisible(true);
 
+        frame.addComponentListener(new FrameFocus());
+        frame.addWindowListener(new WindowClose());
+
+    }
+
+
+
+    public class FrameFocus extends ComponentAdapter {
+            public void componentHidden(ComponentEvent e) {}
+            public void componentShown(ComponentEvent e) {
+                System.out.println("FrameFocus");
+                listOfClient.setText("");
+                clients = "";
+                try {
+                    prStatement = connection.prepareStatement("SELECT id FROM clients WHERE login = ?");
+                    prStatement.setString(1, fieldLogin.getText());
+                    ResultSet existClient = prStatement.executeQuery();
+                    if (!existClient.next()) {
+                        prStatement = connection.prepareStatement("INSERT INTO clients (login, status) VALUE (?, ?)");
+                        prStatement.setString(1, fieldLogin.getText());
+                        prStatement.setBoolean(2, true);
+                        prStatement.execute();
+                        ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
+                        parseClients(resultSet);
+                    }
+                    else
+                    {
+                        prStatement = connection.prepareStatement("UPDATE clients SET status = ? where login = ?");
+                        prStatement.setBoolean(1, true);
+                        prStatement.setString(2, fieldLogin.getText());
+                        prStatement.executeUpdate();
+                        ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
+                        parseClients(resultSet);
+                    }
+                    System.out.println("БД " + clients);
+                    //listOfClient.setText(clients);
+                    //prStatement.close();
+                    //connection.close();
+                } catch (SQLException m) {
+                    System.out.println("Исключение подключ");
+                }
+                client.SendString("ClearListOf@1234");
+                client.SendString(clients);
+            }
+    }
+
+    public void parseClients(ResultSet resultSet){
+        try {
+            while (resultSet.next()) {
+                clients += resultSet.getString("login") + "("
+                        + (resultSet.getBoolean("status") ==
+                        true ? "онлайн" : "офлайн")
+                        + ")" + "\n";
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class WindowClose implements WindowListener{
+
+        @Override
+        public void windowOpened(WindowEvent e) {}
+
+        @Override
+        public void windowClosing(WindowEvent e) {
+            disconnection(client);
+            client.SendString("ClearListOf@1234");
+            client.SendString(clients);
+            System.exit(0);
+        }
+
+        @Override
+        public void windowClosed(WindowEvent e) {
+
+        }
+
+        @Override
+        public void windowIconified(WindowEvent e) {}
+
+        @Override
+        public void windowDeiconified(WindowEvent e) {}
+
+        @Override
+        public void windowActivated(WindowEvent e) {}
+
+        @Override
+        public void windowDeactivated(WindowEvent e) {}
     }
 
     public class SendButtonListener implements ActionListener {
@@ -143,6 +235,7 @@ public class ClientGUI implements ConnectionClient {
                 return;
             }
             client.SendString(fieldLogin.getText() + ": " + fieldInput.getText());
+
             fieldInput.setText("");
             fieldInput.requestFocus();
         }
@@ -157,71 +250,52 @@ public class ClientGUI implements ConnectionClient {
                 return;
             }
 
-            loginFrame.setVisible(false);
-            frame.setVisible(true);
-
+            try {
+                inetAddress = InetAddress.getLocalHost();
+                System.out.println("Local IP:" + inetAddress.getHostAddress());
+            } catch (UnknownHostException a) {
+                a.printStackTrace();
+            }
             client = new Client();
             try {
-                socket = new Socket("192.168.1.102", 5000);
+                socket = new Socket(inetAddress.getHostAddress(), 5000);
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
 
             client.setNetwork(socket, ClientGUI.this);
 
+
+            loginFrame.setVisible(false);
+            frame.setVisible(true);
         }
     }
 
     @Override
     public void connection(Client client) {
         System.out.println("Подкл");
-        client.setName(fieldLogin.getText());
-        tellMessage("Подключился");
+        //client.setName(fieldLogin.getText());
+        //tellMessage("Подключился");
         System.out.println(client.getName() + client);
-        String clients = "";
-        try {
-            prStatement = connection.prepareStatement("INSERT INTO clients (login, status) VALUE (?, ?)");
-            prStatement.setString(1 ,fieldLogin.getText());
-            prStatement.setBoolean(2, true);
-            prStatement.execute();
-            ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
-            while (resultSet.next())
-            {
-                clients += resultSet.getString("login") + "("
-                        + (resultSet.getBoolean("status")
-                        == true ? "онлайн" : "офлайн")
-                        +")" + "\n";
-            }
-            System.out.println("БД " + clients);
-            listOfClient.setText(clients);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        disconnection(client);
 
     }
 
     @Override
     public void disconnection(Client client) {
-        String clients = "";
+        clients = "";
         System.out.println("Откл");
-        tellMessage("Отключился");
+        //tellMessage("Отключился");
         try {
             prStatement = connection.prepareStatement("UPDATE clients SET status = ? where login = ?");
             prStatement.setBoolean(1, false);
             prStatement.setString(2, fieldLogin.getText());
             prStatement.executeUpdate();
             ResultSet resultSet = prStatement.executeQuery("SELECT * FROM clients");
-            while (resultSet.next())
-            {
-                clients += resultSet.getString("login") + "("
-                        + (resultSet.getBoolean("status")
-                        == true ? "онлайн" : "офлайн")
-                        +")" + "\n";
-            }
+            parseClients(resultSet);
             System.out.println("БД " + clients);
             listOfClient.setText(clients);
+         //   prStatement.close();
+         //   connection.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -238,15 +312,17 @@ public class ClientGUI implements ConnectionClient {
 
     private synchronized void tellMessage(String message)
     {
-    /*    if (message.contains(socket.getInetAddress().toString()) && !message.contains("Соединение")) {
-
+        if (message.contains("(онлайн)") || message.contains("(офлайн)")) {
             listOfClient.append(message+ "\n");
             listOfClient.setCaretPosition(listOfClient.getDocument().getLength());
         }
-        else {*/
+        else if(message.equals("ClearListOf@1234")) {
+            listOfClient.setText("");
+        }
+        else {
             incoming.append(message + "\n");
             incoming.setCaretPosition(incoming.getDocument().getLength());
-       // }
+        }
     }
 }
 

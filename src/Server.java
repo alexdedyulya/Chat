@@ -55,7 +55,7 @@ public class Server implements ConnectionClient {
 
     @Override
     public synchronized void receiveString(String message) {
-        System.out.println(message);
+        System.out.println("receive "+message);
         tellEveryone(message);
     }
 
@@ -64,7 +64,7 @@ public class Server implements ConnectionClient {
     public void tellEveryone(String message){
 
         for (int i = 0; i < clientConnection.size(); i++) {
-            System.out.println(message);
+            System.out.println("telleveryone" + message);
             clientConnection.get(i).SendString(message);
         }
     }
